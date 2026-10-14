@@ -104,7 +104,8 @@ export async function POST(request) {
             reference,
             body.customer_name.trim(),
             body.customer_email.trim(),
-            body.customer_phone ? body.customer_phone.trim() : null,
+            // Phone number bhi aa sakta hai, isliye String() lagaya (validation upar ho chuki).
+            body.customer_phone ? String(body.customer_phone).trim() || null : null,
             order_number,
             item_sku,
             body.item_name.trim(),

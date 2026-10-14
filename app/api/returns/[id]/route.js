@@ -81,7 +81,11 @@ export async function PATCH(request, { params }) {
     if (body.customer_name !== undefined) push("customer_name", body.customer_name.trim());
     if (body.customer_email !== undefined) push("customer_email", body.customer_email.trim());
     if (body.customer_phone !== undefined) {
-      push("customer_phone", body.customer_phone ? body.customer_phone.trim() : null);
+      // Number aaye to bhi crash nahi (String me badal kar trim).
+      push(
+        "customer_phone",
+        body.customer_phone ? String(body.customer_phone).trim() || null : null
+      );
     }
     if (body.order_number !== undefined) push("order_number", nextOrder);
     if (body.item_sku !== undefined) push("item_sku", nextSku);
