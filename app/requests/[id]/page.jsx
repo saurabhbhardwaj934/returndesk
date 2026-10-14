@@ -4,12 +4,20 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { STATUS_LABELS, ALLOWED_TRANSITIONS, REASONS } from "../../../lib/rules";
 
-const STATUS_STYLES = {
-  open: "bg-blue-100 text-blue-800",
-  in_review: "bg-amber-100 text-amber-800",
-  approved: "bg-purple-100 text-purple-800",
-  rejected: "bg-red-100 text-red-800",
-  completed: "bg-green-100 text-green-800",
+const STATUS_PILL = {
+  open: "bg-sky-100 text-sky-900",
+  in_review: "bg-amber-100 text-amber-900",
+  approved: "bg-violet-100 text-violet-900",
+  rejected: "bg-rose-100 text-rose-900",
+  completed: "bg-emerald-100 text-emerald-900",
+};
+
+const STATUS_DOT = {
+  open: "bg-sky-500",
+  in_review: "bg-amber-500",
+  approved: "bg-violet-500",
+  rejected: "bg-rose-500",
+  completed: "bg-emerald-600",
 };
 
 function money(cents) {
@@ -17,9 +25,20 @@ function money(cents) {
   return "₹" + (Number(cents) / 100).toFixed(2);
 }
 
+function Card({ title, children }) {
+  return (
+    <div className="rounded-2xl border border-[#ddd2b8] bg-cream p-4 shadow-[0_10px_30px_-24px_rgba(28,23,16,0.5)] sm:p-5">
+      <h2 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.18em] text-gold-600">
+        {title}
+      </h2>
+      {children}
+    </div>
+  );
+}
+
 export default function DetailPage() {
   return (
-    <Suspense fallback={<div className="rounded-xl border bg-white p-6 text-sm text-zinc-500">Loading…</div>}>
+    <Suspense fallback={<div className="rounded-2xl border border-[#ddd2b8] bg-cream p-6 text-sm text-inksoft">Loading…</div>}>
       <DetailInner />
     </Suspense>
   );
@@ -93,12 +112,25 @@ function DetailInner() {
   }
 
   if (loading) {
-    return <div className="rounded-xl border bg-white p-6 text-sm text-zinc-500">Loading…</div>;
+    return (
+      <div className="mx-auto max-w-3xl">
+        <div className="shimmer h-8 w-48 rounded-lg" />
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="shimmer h-32 rounded-2xl" />
+          <div className="shimmer h-32 rounded-2xl" />
+        </div>
+        <div className="shimmer mt-3 h-40 rounded-2xl" />
+      </div>
+    );
   }
   if (!row) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
-        {error || "Nahi mili."} <a href="/" className="ml-2 underline">List par wapas</a>
+      <div className="mx-auto max-w-3xl rounded-2xl border border-rose-300 bg-[#fdf0f0] p-6 text-sm text-rose-900">
+        <p className="font-display text-xl font-semibold">Request nahi mili</p>
+        <p className="mt-1">{error || "Hatayi hui ho sakti hai."}</p>
+        <a href="/" className="mt-3 inline-block rounded-full bg-rose-900 px-4 py-1.5 font-semibold text-white">
+          ← List par wapas
+        </a>
       </div>
     );
   }
@@ -108,181 +140,272 @@ function DetailInner() {
   const canRemove = row.status === "open" || row.status === "rejected";
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <a href="/" className="text-sm text-zinc-500 hover:underline">← Requests</a>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-mono text-2xl font-bold">{row.reference}</h1>
-        <span className={"rounded-full px-3 py-1 text-sm font-bold " + (STATUS_STYLES[row.status] || "bg-zinc-100")}>
+    <div className="rise mx-auto max-w-3xl">
+      <a href="/" className="text-sm font-medium text-inksoft hover:text-pine-800 hover:underline">
+        ← Requests
+      </a>
+
+      {/* Header */}
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-pine-950 p-4 text-[#f4efe4] sm:p-5">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold-500">
+            Return request
+          </p>
+          <h1 className="mt-0.5 font-ref text-2xl font-semibold tracking-tight sm:text-3xl">
+            {row.reference}
+          </h1>
+          <p className="mt-1 text-[13px] text-[#b9c9bd]">
+            {row.customer_name} · <span className="font-ref">{row.order_number}</span>
+          </p>
+        </div>
+        <span
+          className={
+            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-bold " +
+            (STATUS_PILL[row.status] || "bg-stone-200 text-stone-700")
+          }
+        >
+          <span className={"h-2 w-2 rounded-full " + (STATUS_DOT[row.status] || "bg-stone-400")} />
           {STATUS_LABELS[row.status]}
         </span>
       </div>
 
       {error && (
-        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>
+        <div className="mt-3 rounded-2xl border border-rose-300 bg-[#fdf0f0] p-3.5 text-sm font-medium text-rose-900">
+          {error}
+        </div>
       )}
       {msg && (
-        <div className="mt-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">{msg}</div>
+        <div className="mt-3 rounded-2xl border border-emerald-300 bg-[#ecf9f0] p-3.5 text-sm font-medium text-emerald-900">
+          {msg}
+        </div>
       )}
 
+      {/* Info */}
       <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <div className="rounded-xl border bg-white p-4 text-sm">
-          <h2 className="mb-2 font-bold">Customer</h2>
-          <p>{row.customer_name}</p>
-          <p className="text-zinc-500">{row.customer_email}</p>
-          <p className="text-zinc-500">{row.customer_phone || "—"}</p>
-        </div>
-        <div className="rounded-xl border bg-white p-4 text-sm">
-          <h2 className="mb-2 font-bold">Order / Item</h2>
-          <p className="font-mono">{row.order_number}</p>
-          <p>{row.item_name} × {row.quantity}</p>
-          <p className="font-mono text-xs text-zinc-500">{row.item_sku}</p>
-          <p className="mt-1">Wajah: <b>{row.reason}</b></p>
-        </div>
-        <div className="rounded-xl border bg-white p-4 text-sm md:col-span-2">
-          <h2 className="mb-2 font-bold">Resolution</h2>
-          <p>Resolution: <b>{row.resolution || "—"}</b> · Refund: <b>{money(row.refund_amount_cents)}</b></p>
+        <Card title="Customer">
+          <p className="font-display text-lg font-semibold">{row.customer_name}</p>
+          <p className="mt-0.5 text-sm text-inksoft">{row.customer_email}</p>
+          <p className="text-sm text-inksoft">{row.customer_phone || "—"}</p>
+        </Card>
+        <Card title="Order & item">
+          <p className="font-ref text-sm font-semibold">{row.order_number}</p>
+          <p className="mt-0.5 text-sm">
+            {row.item_name} <span className="font-bold">× {row.quantity}</span>
+          </p>
+          <p className="font-ref text-xs text-inksoft">{row.item_sku}</p>
+          <p className="mt-2 inline-block rounded-md bg-[#f1e9d5] px-2 py-0.5 text-xs font-semibold">
+            {row.reason}
+          </p>
+        </Card>
+        <div className="md:col-span-2">
+          <Card title="Resolution">
+            <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+              <p>
+                Resolution:{" "}
+                <b className="capitalize">{row.resolution ? row.resolution.replace("_", " ") : "—"}</b>
+              </p>
+              <p>
+                Refund: <b className="font-ref">{money(row.refund_amount_cents)}</b>
+              </p>
+            </div>
+          </Card>
         </div>
       </div>
 
       {/* Status actions — sirf legal transitions */}
-      <div className="mt-3 rounded-xl border bg-white p-4">
-        <h2 className="mb-2 text-sm font-bold">Actions</h2>
-        {nexts.length === 0 && <p className="text-sm text-zinc-500">Ye final hai, aage koi move nahi.</p>}
-        <div className="flex flex-wrap gap-2">
-          {nexts.map((to) => {
-            if (to === "approved") {
+      <div className="mt-3">
+        <Card title="Actions">
+          {nexts.length === 0 && (
+            <p className="text-sm text-inksoft">Ye final hai — aage koi move nahi.</p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {nexts.map((to) => {
+              if (to === "approved") {
+                return (
+                  <button
+                    key={to}
+                    onClick={() => setShowApprove(!showApprove)}
+                    className="rounded-full bg-violet-700 px-5 py-2 text-sm font-semibold text-white shadow transition-all hover:-translate-y-px hover:bg-violet-600"
+                  >
+                    Approve…
+                  </button>
+                );
+              }
+              const style =
+                to === "rejected"
+                  ? "border border-rose-400 text-rose-800 hover:bg-rose-50"
+                  : to === "completed"
+                    ? "bg-emerald-700 text-white hover:bg-emerald-600"
+                    : "bg-pine-900 text-cream hover:bg-pine-800";
               return (
-                <button key={to} onClick={() => setShowApprove(!showApprove)} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white">
-                  Approve…
+                <button
+                  key={to}
+                  onClick={() =>
+                    callApi("/api/returns/" + encodeURIComponent(id) + "/status", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ to }),
+                    }, "Status badal gaya.")
+                  }
+                  className={"rounded-full px-5 py-2 text-sm font-semibold shadow transition-all hover:-translate-y-px " + style}
+                >
+                  {to === "in_review" ? "Move to In Review →" : to === "rejected" ? "Reject" : "Complete ✓"}
                 </button>
               );
-            }
-            return (
+            })}
+            {canRemove && (
               <button
-                key={to}
-                onClick={() =>
-                  callApi("/api/returns/" + encodeURIComponent(id) + "/status", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ to }),
-                  }, "Status badal gaya.")
-                }
-                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white"
-              >
-                {to === "in_review" ? "Move to In Review" : to === "rejected" ? "Reject" : "Complete"}
-              </button>
-            );
-          })}
-          {canRemove && (
-            <button
-              onClick={async () => {
-                if (!confirm("Hatana pakka? List se gayab hogi, DB me rahegi.")) return;
-                const ok = await callApi("/api/returns/" + encodeURIComponent(id), { method: "DELETE" }, "Hata di.");
-                if (ok) router.push("/");
-              }}
-              className="rounded-lg border border-red-300 px-4 py-2 text-sm text-red-700"
-            >
-              Remove
-            </button>
-          )}
-        </div>
-        {showApprove && (
-          <div className="mt-3 rounded-lg border p-3 text-sm">
-            <div className="flex flex-wrap gap-2">
-              <select value={resolution} onChange={(e) => setResolution(e.target.value)} className="rounded-lg border px-3 py-2">
-                <option value="refund">Refund</option>
-                <option value="replacement">Replacement</option>
-                <option value="store_credit">Store Credit</option>
-              </select>
-              {resolution === "refund" && (
-                <input value={refundRs} onChange={(e) => setRefundRs(e.target.value)} placeholder="Amount ₹ (jaise 499.00)" className="rounded-lg border px-3 py-2" />
-              )}
-              <button
-                onClick={() => {
-                  const payload = { to: "approved", resolution };
-                  if (resolution === "refund") {
-                    const cents = Math.round(Number(refundRs) * 100);
-                    payload.refund_amount_cents = cents;
-                  }
-                  setShowApprove(false);
-                  callApi("/api/returns/" + encodeURIComponent(id) + "/status", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                  }, "Approved.");
+                onClick={async () => {
+                  if (!confirm("Hatana pakka? List se gayab hogi, DB me rahegi.")) return;
+                  const ok = await callApi("/api/returns/" + encodeURIComponent(id), { method: "DELETE" }, "Hata di.");
+                  if (ok) router.push("/");
                 }}
-                className="rounded-lg bg-purple-600 px-4 py-2 text-white"
+                className="rounded-full border border-dashed border-rose-400 px-5 py-2 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-50"
               >
-                Confirm approve
+                Remove
               </button>
-            </div>
-            <p className="mt-1 text-xs text-zinc-500">Refund hai to amount ₹ me do (paise me convert hoga). Bina refund ke amount mana hai.</p>
+            )}
           </div>
-        )}
+          {showApprove && (
+            <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50/60 p-3 text-sm">
+              <div className="flex flex-wrap gap-2">
+                <select
+                  value={resolution}
+                  onChange={(e) => setResolution(e.target.value)}
+                  className="field max-w-[180px] cursor-pointer"
+                >
+                  <option value="refund">Refund</option>
+                  <option value="replacement">Replacement</option>
+                  <option value="store_credit">Store Credit</option>
+                </select>
+                {resolution === "refund" && (
+                  <input
+                    value={refundRs}
+                    onChange={(e) => setRefundRs(e.target.value)}
+                    placeholder="Amount ₹ (jaise 499.00)"
+                    inputMode="decimal"
+                    className="field max-w-[200px]"
+                  />
+                )}
+                <button
+                  onClick={() => {
+                    const payload = { to: "approved", resolution };
+                    if (resolution === "refund") {
+                      const cents = Math.round(Number(refundRs) * 100);
+                      payload.refund_amount_cents = cents;
+                    }
+                    setShowApprove(false);
+                    callApi("/api/returns/" + encodeURIComponent(id) + "/status", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(payload),
+                    }, "Approved.");
+                  }}
+                  className="rounded-full bg-violet-700 px-5 py-2 font-semibold text-white hover:bg-violet-600"
+                >
+                  Confirm approve
+                </button>
+              </div>
+              <p className="mt-1.5 text-xs text-inksoft">
+                Refund hai to amount ₹ me do (paise me convert hoga). Bina refund ke amount mana hai.
+              </p>
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* Edit — decided ke baad band */}
-      <div className="mt-3 rounded-xl border bg-white p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold">Details sudharo</h2>
-          {canEdit ? (
-            <button onClick={() => setEditing(!editing)} className="text-sm underline">{editing ? "Close" : "Edit"}</button>
-          ) : (
-            <span className="text-xs text-zinc-500">Decided — ab edit band (notes likh sakte ho).</span>
-          )}
-        </div>
-        {editing && canEdit && (
-          <div className="mt-2 grid gap-2 text-sm">
-            {["customer_name", "customer_email", "customer_phone", "order_number", "item_sku", "item_name", "quantity"].map((k) => (
-              <input key={k} value={editForm[k] || ""} onChange={(e) => setEditForm({ ...editForm, [k]: e.target.value })} placeholder={k} className="rounded-lg border px-3 py-2" />
-            ))}
-            <select value={editForm.reason} onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })} className="rounded-lg border px-3 py-2">
-              {REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
-            <button
-              onClick={() =>
-                callApi("/api/returns/" + encodeURIComponent(id), {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ ...editForm, quantity: Number(editForm.quantity) }),
-                }, "Save ho gaya.")
-              }
-              className="rounded-lg bg-black px-4 py-2 text-white"
-            >
-              Save
-            </button>
+      <div className="mt-3">
+        <Card title="Details sudharo">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[13px] text-inksoft">
+              {canEdit
+                ? "Faisle se pehle sudhar sakte ho."
+                : "Decided — ab edit band (notes likh sakte ho)."}
+            </p>
+            {canEdit && (
+              <button
+                onClick={() => setEditing(!editing)}
+                className="shrink-0 rounded-full border border-[#d8cfb8] px-3.5 py-1 text-[13px] font-semibold hover:border-pine-700"
+              >
+                {editing ? "Close" : "Edit"}
+              </button>
+            )}
           </div>
-        )}
+          {editing && canEdit && (
+            <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+              {["customer_name", "customer_email", "customer_phone", "order_number", "item_sku", "item_name", "quantity"].map((k) => (
+                <input
+                  key={k}
+                  value={editForm[k] || ""}
+                  onChange={(e) => setEditForm({ ...editForm, [k]: e.target.value })}
+                  placeholder={k}
+                  className="field"
+                />
+              ))}
+              <select
+                value={editForm.reason}
+                onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
+                className="field cursor-pointer sm:col-span-2"
+              >
+                {REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <button
+                onClick={() =>
+                  callApi("/api/returns/" + encodeURIComponent(id), {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ...editForm, quantity: Number(editForm.quantity) }),
+                  }, "Save ho gaya.")
+                }
+                className="rounded-full bg-pine-900 px-5 py-2 font-semibold text-cream hover:bg-pine-800 sm:col-span-2"
+              >
+                Save changes
+              </button>
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* Notes — hamesha likh sakte ho */}
-      <div className="mt-3 rounded-xl border bg-white p-4">
-        <h2 className="mb-2 text-sm font-bold">Notes ({(row.notes || []).length})</h2>
-        {(row.notes || []).length === 0 && <p className="text-sm text-zinc-500">Abhi koi note nahi.</p>}
-        <div className="grid gap-2">
-          {(row.notes || []).map((n) => (
-            <div key={n.id} className="rounded-lg bg-zinc-50 p-3 text-sm">
-              <p>{n.body}</p>
-              <p className="mt-1 text-xs text-zinc-500">{new Date(n.created_at).toLocaleString("en-IN")}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 flex gap-2">
-          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note likho…" className="w-full rounded-lg border px-3 py-2 text-sm" />
-          <button
-            onClick={async () => {
-              const ok = await callApi("/api/returns/" + encodeURIComponent(id) + "/notes", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ body: note }),
-              }, "Note jud gaya.");
-              if (ok) setNote("");
-            }}
-            className="rounded-lg bg-black px-4 py-2 text-sm text-white"
-          >
-            Add
-          </button>
-        </div>
+      <div className="mt-3">
+        <Card title={"Notes · " + (row.notes || []).length}>
+          {(row.notes || []).length === 0 && (
+            <p className="text-sm text-inksoft">Abhi koi note nahi.</p>
+          )}
+          <div className="relative ml-1.5 grid gap-3 border-l-2 border-[#e0d5b8] pl-4">
+            {(row.notes || []).map((n) => (
+              <div key={n.id} className="relative">
+                <span className="absolute top-1 -left-[22px] h-2.5 w-2.5 rounded-full bg-gold-500 ring-4 ring-[#f3ead2]" />
+                <p className="text-sm">{n.body}</p>
+                <p className="mt-0.5 text-xs text-inksoft">
+                  {new Date(n.created_at).toLocaleString("en-IN")}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Note likho…"
+              className="field flex-1"
+            />
+            <button
+              onClick={async () => {
+                const ok = await callApi("/api/returns/" + encodeURIComponent(id) + "/notes", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ body: note }),
+                }, "Note jud gaya.");
+                if (ok) setNote("");
+              }}
+              className="shrink-0 rounded-full bg-pine-900 px-5 py-2 text-sm font-semibold text-cream hover:bg-pine-800"
+            >
+              Add note
+            </button>
+          </div>
+        </Card>
       </div>
     </div>
   );
