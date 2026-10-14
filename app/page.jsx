@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { STATUS_LABELS, REASONS, STATUSES } from "../lib/rules";
 
-const STATUS_PILL = {
+const PILL = {
   open: "bg-sky-100 text-sky-900",
   in_review: "bg-amber-100 text-amber-900",
   approved: "bg-violet-100 text-violet-900",
@@ -11,7 +12,7 @@ const STATUS_PILL = {
   completed: "bg-emerald-100 text-emerald-900",
 };
 
-const STATUS_DOT = {
+const DOT = {
   open: "bg-sky-500",
   in_review: "bg-amber-500",
   approved: "bg-violet-500",
@@ -19,17 +20,31 @@ const STATUS_DOT = {
   completed: "bg-emerald-600",
 };
 
+const BAR = {
+  open: "bg-sky-500",
+  in_review: "bg-amber-500",
+  approved: "bg-violet-500",
+  rejected: "bg-rose-500",
+  completed: "bg-emerald-600",
+};
+
+const CARD_RING = {
+  open: "hover:border-sky-400",
+  in_review: "hover:border-amber-400",
+  approved: "hover:border-violet-400",
+  rejected: "hover:border-rose-400",
+  completed: "hover:border-emerald-500",
+};
+
 function Pill({ status }) {
   return (
     <span
       className={
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap " +
-        (STATUS_PILL[status] || "bg-stone-200 text-stone-700")
+        (PILL[status] || "bg-stone-200 text-stone-700")
       }
     >
-      <span
-        className={"h-1.5 w-1.5 rounded-full " + (STATUS_DOT[status] || "bg-stone-400")}
-      />
+      <span className={"h-1.5 w-1.5 rounded-full " + (DOT[status] || "bg-stone-400")} />
       {STATUS_LABELS[status] || status}
     </span>
   );
@@ -43,7 +58,22 @@ function fmtDate(s) {
   }
 }
 
-export default function ListPage() {
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="rounded-2xl border border-[#ddd2b8] bg-cream p-6 text-sm text-inksoft">
+          Loading dashboard…
+        </div>
+      }
+    >
+      <DashboardInner />
+    </Suspense>
+  );
+}
+
+function DashboardInner() {
+  const searchParams = useSearchParams();
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -56,6 +86,28 @@ export default function ListPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [summary, setSummary] = useState({ total: 0, byStatus: {}, byReason: {} });
+
+  // Sidebar links (/?status=X) yahi filter set karte hain.
+  useEffect(() => {
+    const s = searchParams.get("status");
+    setStatus(s || "all");
+    setPage(1);
+  }, [searchParams]);
+
+  // Dashboard stat cards ke live counts.
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/returns/summary")
+      .then((r) => r.json())
+      .then((b) => {
+        if (alive && typeof b.total === "number") setSummary(b);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [rows]);
 
   // Search har keystroke par request NAHI bhejta — 350ms debounce.
   useEffect(() => {
@@ -109,21 +161,28 @@ export default function ListPage() {
     };
   }, [search, status, reason, sort, order, page]);
 
+  const attention = (summary.byStatus.open || 0) + (summary.byStatus.in_review || 0);
+
   return (
     <div>
-      {/* Page head */}
+      {/* Dashboard head */}
       <div className="rise mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold-600">
-            Support desk
+            Overview
           </p>
           <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Return requests
+            Desk dashboard
           </h1>
           <p className="mt-1.5 text-sm text-inksoft">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#d8cfb8] bg-cream px-2.5 py-0.5 font-semibold text-ink">
-              {total} requests
-            </span>
+            Aaj desk par{" "}
+            <b className="text-ink">{summary.total} live requests</b> hain
+            {attention > 0 && (
+              <span>
+                {" "}— <b className="text-amber-700">{attention} ko action chahiye</b>
+              </span>
+            )}
+            .
           </p>
         </div>
         <a
@@ -134,10 +193,67 @@ export default function ListPage() {
         </a>
       </div>
 
+      {/* Stat cards — click = filter */}
+      <div className="rise grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5" style={{ animationDelay: "60ms" }}>
+        {STATUSES.map((s) => {
+          const n = summary.byStatus[s] || 0;
+          const activeCard = status === s;
+          return (
+            <button
+              key={s}
+              onClick={() => {
+                setStatus(activeCard ? "all" : s);
+                setPage(1);
+              }}
+              aria-pressed={activeCard}
+              className={
+                "lift rounded-2xl border bg-cream p-3.5 text-left " +
+                (activeCard ? "border-pine-800 ring-2 ring-pine-700/30" : "border-[#ddd2b8] ") +
+                (CARD_RING[s] || "")
+              }
+            >
+              <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-inksoft">
+                <span className={"h-2 w-2 rounded-full " + (DOT[s] || "bg-stone-400")} />
+                {STATUS_LABELS[s]}
+              </span>
+              <span className="mt-1 block font-display text-3xl font-semibold">{n}</span>
+              <span className="text-xs font-medium text-gold-600">
+                {activeCard ? "✓ filtering — dobara dabao hatane ke liye" : "Dabao filter karne ke liye"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Distribution bar */}
+      <div className="rise mt-2.5 rounded-2xl border border-[#ddd2b8] bg-cream p-4" style={{ animationDelay: "100ms" }}>
+        <div className="flex items-center justify-between text-xs font-semibold">
+          <span className="uppercase tracking-[0.14em] text-inksoft">Status mix</span>
+          <span className="text-inksoft">{summary.total} total</span>
+        </div>
+        <div className="mt-2 flex h-3.5 w-full overflow-hidden rounded-full bg-[#ece4cf]">
+          {STATUSES.map((s) => {
+            const pct = summary.total ? ((summary.byStatus[s] || 0) / summary.total) * 100 : 0;
+            if (pct <= 0) return null;
+            return (
+              <div key={s} title={STATUS_LABELS[s] + ": " + (summary.byStatus[s] || 0)} className={BAR[s]} style={{ width: pct + "%" }} />
+            );
+          })}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-inksoft">
+          {STATUSES.map((s) => (
+            <span key={s} className="inline-flex items-center gap-1.5">
+              <span className={"h-2 w-2 rounded-full " + (DOT[s] || "bg-stone-400")} />
+              {STATUS_LABELS[s]} <b className="text-ink">{summary.byStatus[s] || 0}</b>
+            </span>
+          ))}
+        </div>
+      </div>
+
       {/* Filter panel */}
       <div
-        className="rise mb-4 rounded-2xl border border-[#ddd2b8] bg-cream p-3 shadow-[0_10px_30px_-20px_rgba(28,23,16,0.4)] sm:p-4"
-        style={{ animationDelay: "60ms" }}
+        className="rise mt-4 rounded-2xl border border-[#ddd2b8] bg-cream p-3 shadow-[0_10px_30px_-20px_rgba(28,23,16,0.4)] sm:p-4"
+        style={{ animationDelay: "140ms" }}
       >
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1.2fr]">
           <label className="relative block sm:col-span-2 lg:col-span-1">
@@ -253,10 +369,7 @@ export default function ListPage() {
       </div>
 
       {loading && (
-        <div
-          className="rise overflow-hidden rounded-2xl border border-[#ddd2b8] bg-cream p-4"
-          style={{ animationDelay: "120ms" }}
-        >
+        <div className="rise mt-3 overflow-hidden rounded-2xl border border-[#ddd2b8] bg-cream p-4">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="flex items-center gap-3 border-b border-[#eee5cf] py-3 last:border-0">
               <div className="shimmer h-5 w-24 rounded-full" />
@@ -269,7 +382,7 @@ export default function ListPage() {
       )}
 
       {!loading && error && (
-        <div className="rise rounded-2xl border border-rose-300 bg-[#fdf0f0] p-5 text-sm text-rose-900">
+        <div className="rise mt-3 rounded-2xl border border-rose-300 bg-[#fdf0f0] p-5 text-sm text-rose-900">
           <p className="font-display text-lg font-semibold">Kuch gadbad hui</p>
           <p className="mt-1">{error}</p>
           <button
@@ -285,7 +398,7 @@ export default function ListPage() {
       )}
 
       {!loading && !error && rows.length === 0 && (
-        <div className="rise rounded-2xl border border-dashed border-[#c9bb97] bg-cream p-10 text-center">
+        <div className="rise mt-3 rounded-2xl border border-dashed border-[#c9bb97] bg-cream p-10 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gold-100 font-display text-2xl text-gold-600">
             ?
           </div>
@@ -303,7 +416,10 @@ export default function ListPage() {
       )}
 
       {!loading && !error && rows.length > 0 && (
-        <div className="rise" style={{ animationDelay: "120ms" }}>
+        <div className="rise mt-3" style={{ animationDelay: "80ms" }}>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-inksoft">
+            Requests · {total} total
+          </p>
           {/* Desktop table */}
           <div className="nice-scroll hidden overflow-x-auto rounded-2xl border border-[#ddd2b8] bg-cream shadow-[0_10px_30px_-20px_rgba(28,23,16,0.4)] md:block">
             <table className="w-full text-left text-sm">

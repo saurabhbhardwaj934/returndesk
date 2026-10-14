@@ -69,6 +69,7 @@ Error shape hamesha: `{ error: { code, message, details? } }` — `400` validati
 | POST | `/api/returns/:id/status` `{ to, resolution?, refund_amount_cents? }` | Move (Rule 1+2) |
 | POST | `/api/returns/:id/notes` `{ body }` | Note → `201` |
 | DELETE | `/api/returns/:id` | Soft-remove (Rule 5) |
+| GET | `/api/returns/summary` | Dashboard counts `{ total, byStatus, byReason }` (sirf live rows) |
 
 ## Design decisions (kyu)
 

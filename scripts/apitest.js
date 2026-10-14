@@ -100,6 +100,12 @@ async function req(method, path, body) {
   r = await req("GET", "/api/returns/00000000-0000-0000-0000-000000000000");
   check("nf-404", r.status === 404 && r.data.error && r.data.error.code === "NOT_FOUND", JSON.stringify(r.data));
 
+  // 11. Summary (dashboard cards)
+  r = await req("GET", "/api/returns/summary");
+  check("sum-200", r.status === 200, r.status);
+  check("sum-total", r.data && typeof r.data.total === "number" && r.data.total >= 36, JSON.stringify(r.data));
+  check("sum-statuses", r.data && ["open", "in_review", "approved", "rejected", "completed"].every((s) => typeof r.data.byStatus[s] === "number"), JSON.stringify(r.data && r.data.byStatus));
+
   console.log("\nRESULT pass=" + pass + " fail=" + fail);
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error("APITEST-ERROR", e.message); process.exit(1); });
