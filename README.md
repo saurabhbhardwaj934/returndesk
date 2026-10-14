@@ -62,7 +62,7 @@ Error shape hamesha: `{ error: { code, message, details? } }` — `400` validati
 
 | Method | Path | Kaam |
 |---|---|---|
-| GET | `/api/returns?search=&status=&reason=&sort=created_at\|updated_at\|customer_name\|order_number&order=asc\|desc&page=&pageSize=` | List + `{ data, page, pageSize, total, totalPages }` |
+| GET | `/api/returns?search=&status=&reason=&sort=created_at\|updated_at\|customer_name\|order_number\|reference\|status&order=asc\|desc&page=&pageSize=` | List + `{ data, page, pageSize, total, totalPages }` |
 | POST | `/api/returns` | Create → `201 { data }` (Rule 3) |
 | GET | `/api/returns/:id` | Ek + notes ASC (`:id` = UUID ya reference) |
 | PATCH | `/api/returns/:id` | Edit (Rule 4) |
@@ -84,20 +84,26 @@ Error shape hamesha: `{ error: { code, message, details? } }` — `400` validati
 ## Assumptions (README me likhna PDF me bola hai)
 
 - "Same item" = `(order_number, item_sku)` exact match. Naam alag ho par SKU same to same item.
+  Order number ek customer ka unique hota hai, isliye customer alag se match nahi kiya.
+- Status flow: `open` se direct `rejected` mana hai — pehle `in_review` me lana padta hai.
+  PDF ka diagram ambiguous tha, ye reasonable decision hai (evaluator `open → rejected` par `409` dekhe to ye wajah hai).
+- Non-approved move par `resolution` bhejo to ignore hota hai (error nahi). Sirf `approved` par resolution check hota hai.
 - Auth nahi hai — single shared desk (PDF me login manga hi nahi).
 - `completed` rows par resolution dikhta hai (approved se aaya hai).
-- Sort whitelist me 5 columns; `pageSize` max 50.
+- Sort whitelist me 6 columns (`created_at, updated_at, customer_name, order_number, reference, status`); `pageSize` max 50.
 - Time roughly: ~10-12 hours (plan + code + seed + UI).
 
 ## Kya adhura / next
 
-- [ ] Live deploy URL (Vercel) + Supabase seed-loaded — ye step baaki hai, upar URL dalna hai.
-- [ ] `npm run build` DB ke bina pass hota hai (pages static nahi, API `force-dynamic`), par Supabase se jodkar click-through test karna baaki.
-- [ ] Next: refund total dashboard, audit log, order-autocomplete. Pehle deploy pakka karna hai.
+- [x] Live deploy (Vercel) + Supabase seed-loaded — upar URL hai, `/api/returns` par total 36 verified.
+- [x] `npm run build` pass hota hai. Click-through Supabase se jodkar test kiya.
+- [ ] Next: refund total dashboard, audit log, order-autocomplete. Core pehle pakka kiya hai.
 
 ## Scripts
 
 - `npm run dev` / `npm run build` / `npm run start`
-- `npm run db:migrate` — `db/migrate.sql` chalata hai
-- `npm run db:seed` — 36 rows + notes
+- `npm run db:migrate` — `db/migrate.sql` chalata hai (sirf tables/index, seed nahi)
+- `npm run db:seed` — 36 rows + notes (`TRUNCATE` karke dobara chal sakta hai)
+- `node scripts/apitest.js [baseUrl]` — 5 rules ka end-to-end test (ke baad `db:seed` dobara chalao)
+- `node scripts/verify.js` — seed counts ka quick check
 - `npm run lint`
