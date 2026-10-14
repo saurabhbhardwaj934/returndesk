@@ -1,8 +1,8 @@
 "use client";
 
-const { useState } = require("react");
-const { useRouter } = require("next/navigation");
-const { REASONS } = require("../../../lib/rules");
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { REASONS } from "../../../lib/rules";
 
 const FIELDS = [
   ["customer_name", "Customer naam", "text", "Priya Sharma"],

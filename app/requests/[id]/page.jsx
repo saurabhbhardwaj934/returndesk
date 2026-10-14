@@ -1,8 +1,8 @@
 "use client";
 
-const { useCallback, useEffect, useState } = require("react");
-const { useParams, useRouter } = require("next/navigation");
-const { STATUS_LABELS, ALLOWED_TRANSITIONS, REASONS } = require("../../../lib/rules");
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { STATUS_LABELS, ALLOWED_TRANSITIONS, REASONS } from "../../../lib/rules";
 
 const STATUS_STYLES = {
   open: "bg-blue-100 text-blue-800",
@@ -18,6 +18,14 @@ function money(cents) {
 }
 
 export default function DetailPage() {
+  return (
+    <Suspense fallback={<div className="rounded-xl border bg-white p-6 text-sm text-zinc-500">Loading…</div>}>
+      <DetailInner />
+    </Suspense>
+  );
+}
+
+function DetailInner() {
   const params = useParams();
   const router = useRouter();
   const id = params.id;

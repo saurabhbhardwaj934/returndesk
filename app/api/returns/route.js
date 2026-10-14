@@ -1,10 +1,7 @@
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-const { query } = require("../../../../../lib/db");
-const { json, fail, validation, conflict } = require("../../../../../lib/errors");
-const { checkCreate, parseListParams } = require("../../../../../lib/validate");
-const { generateReference } = require("../../../../../lib/reference");
+const { query } = require("../../../lib/db");
+const { json, fail, validation, conflict } = require("../../../lib/errors");
+const { checkCreate, parseListParams } = require("../../../lib/validate");
+const { generateReference } = require("../../../lib/reference");
 
 // GET /api/returns?search=&status=&reason=&sort=&order=&page=&pageSize=
 // Saara filter/sort/paging SQL me hota hai, browser me nahi.

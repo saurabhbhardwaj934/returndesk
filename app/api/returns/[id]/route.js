@@ -1,6 +1,3 @@
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 const { query } = require("../../../../lib/db");
 const { json, fail, validation, notFound, conflict } = require("../../../../lib/errors");
 const { checkPatch } = require("../../../../lib/validate");

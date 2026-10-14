@@ -1,7 +1,7 @@
 "use client";
 
-const { useEffect, useState } = require("react");
-const { STATUS_LABELS, REASONS, STATUSES } = require("../../lib/rules");
+import { useEffect, useState } from "react";
+import { STATUS_LABELS, REASONS, STATUSES } from "../lib/rules";
 
 const STATUS_STYLES = {
   open: "bg-blue-100 text-blue-800",
