@@ -1,6 +1,6 @@
 # ReturnDesk
 
-Live URL: (deploy ke baad yaha dalna — Vercel + Supabase)
+Live URL: https://returndesk-ashy.vercel.app/
 
 Chhote online store ka returns desk. Agent return request raise karta hai, review karta hai,
 approve/reject karta hai (refund / replacement / store credit), notes likhta hai, aur close karta hai.
