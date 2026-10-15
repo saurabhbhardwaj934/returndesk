@@ -88,14 +88,14 @@ function DashboardInner() {
   const [error, setError] = useState("");
   const [summary, setSummary] = useState({ total: 0, byStatus: {}, byReason: {} });
 
-  // Sidebar links (/?status=X) yahi filter set karte hain.
+  // Sidebar links (/?status=X) set this filter.
   useEffect(() => {
     const s = searchParams.get("status");
     setStatus(s || "all");
     setPage(1);
   }, [searchParams]);
 
-  // Dashboard stat cards ke live counts.
+  // Live counts for dashboard stat cards.
   useEffect(() => {
     let alive = true;
     fetch("/api/returns/summary")
@@ -109,7 +109,7 @@ function DashboardInner() {
     };
   }, [rows]);
 
-  // Search har keystroke par request NAHI bhejta — 350ms debounce.
+  // Search does NOT send a request on every keystroke — 350ms debounce.
   useEffect(() => {
     const t = setTimeout(() => {
       setSearch(input.trim());
@@ -137,7 +137,7 @@ function DashboardInner() {
         const body = await res.json();
         if (!alive) return;
         if (!res.ok) {
-          setError((body.error && body.error.message) || "List load nahi hui.");
+          setError((body.error && body.error.message) || "Could not load the list.");
           setRows([]);
           setTotal(0);
           setTotalPages(0);
@@ -148,7 +148,7 @@ function DashboardInner() {
         setTotalPages(body.totalPages || 0);
       } catch {
         if (alive) {
-          setError("Network issue hai. Retry karo.");
+          setError("Network error. Please retry.");
           setRows([]);
         }
       } finally {
@@ -175,11 +175,11 @@ function DashboardInner() {
             Desk dashboard
           </h1>
           <p className="mt-1.5 text-sm text-inksoft">
-            Aaj desk par{" "}
-            <b className="text-ink">{summary.total} live requests</b> hain
+            Today the desk has{" "}
+            <b className="text-ink">{summary.total} live requests</b>
             {attention > 0 && (
               <span>
-                {" "}— <b className="text-amber-700">{attention} ko action chahiye</b>
+                {" "}— <b className="text-amber-700">{attention} need action</b>
               </span>
             )}
             .
@@ -218,7 +218,7 @@ function DashboardInner() {
               </span>
               <span className="mt-1 block font-display text-3xl font-semibold">{n}</span>
               <span className="text-xs font-medium text-gold-600">
-                {activeCard ? "✓ filtering — dobara dabao hatane ke liye" : "Dabao filter karne ke liye"}
+                {activeCard ? "✓ filtering — press again to clear" : "Press to filter"}
               </span>
             </button>
           );
@@ -328,7 +328,7 @@ function DashboardInner() {
             <button
               onClick={() => setOrder(order === "asc" ? "desc" : "asc")}
               className="shrink-0 rounded-xl border border-[#d8cfb8] bg-[#fffdf8] px-3.5 text-base transition-colors hover:border-pine-700 hover:text-pine-800"
-              title="Sort order badlo"
+              title="Change sort order"
             >
               {order === "asc" ? "↑" : "↓"}
             </button>
@@ -383,7 +383,7 @@ function DashboardInner() {
 
       {!loading && error && (
         <div className="rise mt-3 rounded-2xl border border-rose-300 bg-[#fdf0f0] p-5 text-sm text-rose-900">
-          <p className="font-display text-lg font-semibold">Kuch gadbad hui</p>
+          <p className="font-display text-lg font-semibold">Something went wrong</p>
           <p className="mt-1">{error}</p>
           <button
             className="mt-3 rounded-full bg-rose-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-rose-800"
@@ -402,9 +402,9 @@ function DashboardInner() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gold-100 font-display text-2xl text-gold-600">
             ?
           </div>
-          <p className="mt-3 font-display text-xl font-semibold">Koi request nahi mili.</p>
+          <p className="mt-3 font-display text-xl font-semibold">No requests found.</p>
           <p className="mt-1 text-sm text-inksoft">
-            Search ya filter badal kar dekho, ya nayi request banao.
+            Try a different search or filter, or create a new request.
           </p>
           <a
             href="/requests/new"

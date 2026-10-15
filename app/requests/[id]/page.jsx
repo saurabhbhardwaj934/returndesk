@@ -66,7 +66,7 @@ function DetailInner() {
       const res = await fetch("/api/returns/" + encodeURIComponent(id));
       const body = await res.json();
       if (!res.ok) {
-        setError((body.error && body.error.message) || "Load nahi hui.");
+        setError((body.error && body.error.message) || "Could not load it.");
         setRow(null);
         return;
       }
@@ -82,7 +82,7 @@ function DetailInner() {
         reason: body.data.reason,
       });
     } catch {
-      setError("Network issue hai.");
+      setError("Network error. Please retry.");
     } finally {
       setLoading(false);
     }
@@ -99,14 +99,14 @@ function DetailInner() {
       const res = await fetch(url, options);
       const body = await res.json();
       if (!res.ok) {
-        setError((body.error && body.error.message) || "Action fail hui.");
+        setError((body.error && body.error.message) || "Action failed.");
         return false;
       }
-      setMsg(okMsg || "Ho gaya.");
+      setMsg(okMsg || "Done.");
       await load();
       return true;
     } catch {
-      setError("Network issue hai.");
+      setError("Network error. Please retry.");
       return false;
     }
   }
@@ -126,10 +126,10 @@ function DetailInner() {
   if (!row) {
     return (
       <div className="mx-auto max-w-3xl rounded-2xl border border-rose-300 bg-[#fdf0f0] p-6 text-sm text-rose-900">
-        <p className="font-display text-xl font-semibold">Request nahi mili</p>
-        <p className="mt-1">{error || "Hatayi hui ho sakti hai."}</p>
+        <p className="font-display text-xl font-semibold">Request not found</p>
+        <p className="mt-1">{error || "It may have been removed."}</p>
         <a href="/" className="mt-3 inline-block rounded-full bg-rose-900 px-4 py-1.5 font-semibold text-white">
-          ← List par wapas
+          ← Back to list
         </a>
       </div>
     );
@@ -212,11 +212,11 @@ function DetailInner() {
         </div>
       </div>
 
-      {/* Status actions — sirf legal transitions */}
+      {/* Status actions — only legal transitions */}
       <div className="mt-3">
         <Card title="Actions">
           {nexts.length === 0 && (
-            <p className="text-sm text-inksoft">Ye final hai — aage koi move nahi.</p>
+            <p className="text-sm text-inksoft">This is final — no further moves.</p>
           )}
           <div className="flex flex-wrap gap-2">
             {nexts.map((to) => {
@@ -245,7 +245,7 @@ function DetailInner() {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ to }),
-                    }, "Status badal gaya.")
+                    }, "Status updated.")
                   }
                   className={"rounded-full px-5 py-2 text-sm font-semibold shadow transition-all hover:-translate-y-px " + style}
                 >
@@ -256,8 +256,8 @@ function DetailInner() {
             {canRemove && (
               <button
                 onClick={async () => {
-                  if (!confirm("Hatana pakka? List se gayab hogi, DB me rahegi.")) return;
-                  const ok = await callApi("/api/returns/" + encodeURIComponent(id), { method: "DELETE" }, "Hata di.");
+                  if (!confirm("Are you sure? It will hide from the list but stay in the DB.")) return;
+                  const ok = await callApi("/api/returns/" + encodeURIComponent(id), { method: "DELETE" }, "Removed.");
                   if (ok) router.push("/");
                 }}
                 className="rounded-full border border-dashed border-rose-400 px-5 py-2 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-50"
@@ -282,7 +282,7 @@ function DetailInner() {
                   <input
                     value={refundRs}
                     onChange={(e) => setRefundRs(e.target.value)}
-                    placeholder="Amount ₹ (jaise 499.00)"
+                    placeholder="Amount ₹ (e.g. 499.00)"
                     inputMode="decimal"
                     className="field max-w-[200px]"
                   />
@@ -307,21 +307,21 @@ function DetailInner() {
                 </button>
               </div>
               <p className="mt-1.5 text-xs text-inksoft">
-                Refund hai to amount ₹ me do (paise me convert hoga). Bina refund ke amount mana hai.
+                For refund, give the amount in ₹ (it converts to paise). Amount is not allowed without a refund.
               </p>
             </div>
           )}
         </Card>
       </div>
 
-      {/* Edit — decided ke baad band */}
+      {/* Edit — closed after decision */}
       <div className="mt-3">
-        <Card title="Details sudharo">
+        <Card title="Fix details">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[13px] text-inksoft">
               {canEdit
-                ? "Faisle se pehle sudhar sakte ho."
-                : "Decided — ab edit band (notes likh sakte ho)."}
+                ? "You can fix it before the decision."
+                : "Decided — editing is closed (you can still add notes)."}
             </p>
             {canEdit && (
               <button
@@ -356,7 +356,7 @@ function DetailInner() {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ ...editForm, quantity: Number(editForm.quantity) }),
-                  }, "Save ho gaya.")
+                  }, "Saved.")
                 }
                 className="rounded-full bg-pine-900 px-5 py-2 font-semibold text-cream hover:bg-pine-800 sm:col-span-2"
               >
@@ -367,11 +367,11 @@ function DetailInner() {
         </Card>
       </div>
 
-      {/* Notes — hamesha likh sakte ho */}
+      {/* Notes — you can always write */}
       <div className="mt-3">
         <Card title={"Notes · " + (row.notes || []).length}>
           {(row.notes || []).length === 0 && (
-            <p className="text-sm text-inksoft">Abhi koi note nahi.</p>
+            <p className="text-sm text-inksoft">No notes yet.</p>
           )}
           <div className="relative ml-1.5 grid gap-3 border-l-2 border-[#e0d5b8] pl-4">
             {(row.notes || []).map((n) => (
@@ -388,7 +388,7 @@ function DetailInner() {
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Note likho…"
+              placeholder="Write a note…"
               className="field flex-1"
             />
             <button
@@ -397,7 +397,7 @@ function DetailInner() {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ body: note }),
-                }, "Note jud gaya.");
+                }, "Note added.");
                 if (ok) setNote("");
               }}
               className="shrink-0 rounded-full bg-pine-900 px-5 py-2 text-sm font-semibold text-cream hover:bg-pine-800"

@@ -1,8 +1,8 @@
 const { query } = require("../../../../lib/db");
 const { json, fail } = require("../../../../lib/errors");
 
-// GET /api/returns/summary — dashboard stat cards ke liye live counts.
-// Sirf non-deleted rows ginata hai (soft-removed list me nahi hote).
+// GET /api/returns/summary — live counts for dashboard stat cards.
+// Counts only non-deleted rows (soft-removed ones are not listed).
 export async function GET() {
   try {
     const byStatusQ = await query(

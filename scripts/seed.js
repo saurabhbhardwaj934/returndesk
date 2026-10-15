@@ -1,6 +1,6 @@
-// node scripts/seed.js — khaali DB par 36 requests dalta hai.
-// Har status (5) x har reason (5) cover, notes aadhi rows par.
-// Pehle tables saaf karta hai taaki dobara chalane par duplicate na ho.
+// node scripts/seed.js — adds 36 requests to an empty DB.
+// Covers every status (5) x every reason (5), notes on half the rows.
+// Clears tables first so running again does not create duplicates.
 
 const fs = require("fs");
 const path = require("path");
@@ -53,19 +53,19 @@ const STATUS_PLAN = [
 ];
 
 const NOTE_TEXTS = [
-  "Customer ne photo bheji, box toota hua tha.",
-  "Courier se baat hui, dobara check karenge.",
-  "Size chart bheja, customer ne M ki jagah L manga.",
-  "Refund team ko forward kiya.",
-  "Replacement stock me available hai.",
-  "Customer ne call par confirm kiya.",
-  "Store credit par customer raazi hai.",
+  "Customer sent a photo, the box was broken.",
+  "Spoke to the courier, will check again.",
+  "Sent the size chart, customer ordered L instead of M.",
+  "Forwarded to the refund team.",
+  "Replacement is available in stock.",
+  "Customer confirmed on the call.",
+  "Customer agreed to store credit.",
 ];
 
 async function main() {
   loadEnv();
   if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL missing hai. .env banao (README dekho).");
+    console.error("DATABASE_URL is missing. Create .env (see README).");
     process.exit(1);
   }
   const url = process.env.DATABASE_URL;
@@ -93,7 +93,7 @@ async function main() {
         const pick = n % 3;
         if (pick === 0) {
           resolution = "refund";
-          refundCents = 49900 + (n * 137) % 400000; // paise me
+          refundCents = 49900 + (n * 137) % 400000; // in paise
         } else if (pick === 1) {
           resolution = "replacement";
         } else {
@@ -123,7 +123,7 @@ async function main() {
         ]
       );
       const id = r.rows[0].id;
-      // Aadhi rows par notes (1-2 notes).
+      // Notes on half the rows (1-2 notes).
       if (n % 2 === 0) {
         await pool.query("INSERT INTO notes (return_id, body) VALUES ($1, $2)", [
           id,
@@ -133,7 +133,7 @@ async function main() {
       if (n % 5 === 0) {
         await pool.query("INSERT INTO notes (return_id, body) VALUES ($1, $2)", [
           id,
-          "Agent ne review kiya, aage badhaya.",
+          "Agent reviewed it and moved it forward.",
         ]);
       }
     }

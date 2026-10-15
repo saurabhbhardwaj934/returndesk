@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { REASONS } from "../../../lib/rules";
 
 const CUSTOMER_FIELDS = [
-  ["customer_name", "Customer naam", "text", "Priya Sharma"],
+  ["customer_name", "Customer name", "text", "Priya Sharma"],
   ["customer_email", "Customer email", "email", "priya@example.com"],
   ["customer_phone", "Phone (optional)", "text", "9876543210"],
 ];
@@ -13,7 +13,7 @@ const CUSTOMER_FIELDS = [
 const ORDER_FIELDS = [
   ["order_number", "Order number", "text", "ORD-1042"],
   ["item_sku", "Item SKU", "text", "TSH-BLK-M"],
-  ["item_name", "Item naam", "text", "Black Cotton T-Shirt (M)"],
+  ["item_name", "Item name", "text", "Black Cotton T-Shirt (M)"],
   ["quantity", "Quantity", "number", "1"],
 ];
 
@@ -60,13 +60,13 @@ export default function NewPage() {
       });
       const body = await res.json();
       if (!res.ok) {
-        setTopError((body.error && body.error.message) || "Save nahi hua.");
+        setTopError((body.error && body.error.message) || "Could not save.");
         if (body.error && body.error.details) setFieldErrors(body.error.details);
         return;
       }
       router.push("/requests/" + body.data.reference);
     } catch {
-      setTopError("Network issue hai. Dobara try karo.");
+      setTopError("Network error. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -81,10 +81,10 @@ export default function NewPage() {
         New entry
       </p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">
-        Nayi return request
+        New return request
       </h1>
       <p className="mt-1.5 text-sm text-inksoft">
-        Reference system khud banayega — tumhe type nahi karna.
+        The system will create the reference — you do not need to type it.
       </p>
 
       {topError && (
@@ -144,7 +144,7 @@ export default function NewPage() {
           <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-pine-900 text-xs font-bold text-cream">
             3
           </span>
-          Wajah
+          Reason
         </h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {REASONS.map((r) => (

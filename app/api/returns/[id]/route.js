@@ -3,7 +3,7 @@ const { json, fail, validation, notFound, conflict } = require("../../../../lib/
 const { checkPatch } = require("../../../../lib/validate");
 const { isDecided, isRemovable } = require("../../../../lib/rules");
 
-// :id me UUID ya reference dono chalte hain.
+// :id accepts both UUID and reference.
 async function findLive(idOrRef) {
   const r = await query(
     `SELECT * FROM returns WHERE (id::text = $1 OR reference = $1) LIMIT 1`,
@@ -12,13 +12,13 @@ async function findLive(idOrRef) {
   return r.rows[0] || null;
 }
 
-// GET /api/returns/:id — poori detail + notes (purane se naye).
+// GET /api/returns/:id — full detail + notes (oldest first).
 export async function GET(_request, { params }) {
   try {
     const { id } = await params;
     const row = await findLive(id);
     if (!row || row.deleted_at) {
-      throw notFound("Ye request nahi mili (hatayi hui ho sakti hai).");
+      throw notFound("This request was not found (it may have been removed).");
     }
     const notes = await query(
       "SELECT id, body, created_at FROM notes WHERE return_id = $1 ORDER BY created_at ASC",
@@ -30,33 +30,33 @@ export async function GET(_request, { params }) {
   }
 }
 
-// PATCH /api/returns/:id — Rule 4: decided ke baad edit mana.
+// PATCH /api/returns/:id — Rule 4: no edit after decision.
 export async function PATCH(request, { params }) {
   try {
     const { id } = await params;
     const row = await findLive(id);
     if (!row || row.deleted_at) {
-      throw notFound("Ye request nahi mili.");
+      throw notFound("This request was not found.");
     }
     if (isDecided(row.status)) {
       throw conflict(
         "LOCKED",
-        "Ye request decided hai (" + row.status + "), ab customer/item details edit nahi ho sakte. Notes ab bhi likh sakte ho."
+        "This request is decided (" + row.status + "), customer/item details cannot be edited now. You can still add notes."
       );
     }
     let body;
     try {
       body = await request.json();
     } catch {
-      throw validation("Body JSON me bhejo.", null);
+      throw validation("Send the body as JSON.", null);
     }
     const errors = checkPatch(body);
     if (Object.keys(errors).length > 0) {
-      throw validation("Kuch fields galat hain.", errors);
+      throw validation("Some fields are invalid.", errors);
     }
     const nextOrder = body.order_number ? body.order_number.trim() : row.order_number;
     const nextSku = body.item_sku ? body.item_sku.trim() : row.item_sku;
-    // Agar order/item badal raha hai to Rule 3 dobara check (khud ko chhod kar).
+    // If order/item is changing, check Rule 3 again (excluding itself).
     if (nextOrder !== row.order_number || nextSku !== row.item_sku) {
       const dup = await query(
         `SELECT id FROM returns
@@ -68,7 +68,7 @@ export async function PATCH(request, { params }) {
       if (dup.rows.length > 0) {
         throw conflict(
           "DUPLICATE_LIVE_REQUEST",
-          "Is order + item par ek aur live request hai, isliye ye change nahi ho sakta."
+          "Another live request exists for this order + item, so this change is not allowed."
         );
       }
     }
@@ -81,7 +81,7 @@ export async function PATCH(request, { params }) {
     if (body.customer_name !== undefined) push("customer_name", body.customer_name.trim());
     if (body.customer_email !== undefined) push("customer_email", body.customer_email.trim());
     if (body.customer_phone !== undefined) {
-      // Number aaye to bhi crash nahi (String me badal kar trim).
+      // Convert to String and trim, so a number does not crash it.
       push(
         "customer_phone",
         body.customer_phone ? String(body.customer_phone).trim() || null : null
@@ -103,18 +103,18 @@ export async function PATCH(request, { params }) {
   }
 }
 
-// DELETE /api/returns/:id — Rule 5: soft remove, sirf open/rejected.
+// DELETE /api/returns/:id — Rule 5: soft remove, only open/rejected.
 export async function DELETE(_request, { params }) {
   try {
     const { id } = await params;
     const row = await findLive(id);
     if (!row || row.deleted_at) {
-      throw notFound("Ye request nahi mili.");
+      throw notFound("This request was not found.");
     }
     if (!isRemovable(row.status)) {
       throw conflict(
         "CANNOT_REMOVE",
-        "Sirf Open ya Rejected request hatayi ja sakti hai. Ye " + row.status + " me hai."
+        "Only Open or Rejected requests can be removed. This one is in " + row.status + "."
       );
     }
     const r = await query(

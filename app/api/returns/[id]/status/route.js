@@ -4,7 +4,7 @@ const { checkStatus } = require("../../../../../lib/validate");
 const { transitionError, approvalError } = require("../../../../../lib/rules");
 
 // POST /api/returns/:id/status { to, resolution?, refund_amount_cents? }
-// Rule 1 (flow) + Rule 2 (approval) dono yahi enforce hote hain.
+// Both Rule 1 (flow) + Rule 2 (approval) are enforced here.
 export async function POST(request, { params }) {
   try {
     const { id } = await params;
@@ -14,17 +14,17 @@ export async function POST(request, { params }) {
     );
     const row = found.rows[0];
     if (!row || row.deleted_at) {
-      throw notFound("Ye request nahi mili.");
+      throw notFound("This request was not found.");
     }
     let body;
     try {
       body = await request.json();
     } catch {
-      throw validation("Body JSON me bhejo.", null);
+      throw validation("Send the body as JSON.", null);
     }
     const shapeErrors = checkStatus(body);
     if (Object.keys(shapeErrors).length > 0) {
-      throw validation("Status change galat hai.", shapeErrors);
+      throw validation("Status change is invalid.", shapeErrors);
     }
     const to = body.to;
     const tErr = transitionError(row.status, to);

@@ -1,5 +1,5 @@
-// node scripts/migrate.js — db/migrate.sql ko DATABASE_URL par chalata hai.
-// .env file agar hai to khud padh leta hai (koi dotenv dependency nahi).
+// node scripts/migrate.js — runs db/migrate.sql on DATABASE_URL.
+// Reads the .env file if present (no dotenv dependency).
 
 const fs = require("fs");
 const path = require("path");
@@ -25,7 +25,7 @@ function loadEnv() {
 async function main() {
   loadEnv();
   if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL missing hai. .env banao (README dekho).");
+    console.error("DATABASE_URL is missing. Create .env (see README).");
     process.exit(1);
   }
   const sql = fs.readFileSync(path.join(process.cwd(), "db", "migrate.sql"), "utf8");

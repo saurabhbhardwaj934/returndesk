@@ -98,7 +98,7 @@ function NavContent({ counts, onNavigate }) {
 
       <div className="mt-auto rounded-2xl bg-white/5 p-3.5 text-xs leading-relaxed text-[#a9bfae]">
         <p className="font-bold text-[#d9e4da]">Desk rule</p>
-        <p className="mt-0.5">Rejected &amp; Completed final hain — waha se koi move nahi.</p>
+        <p className="mt-0.5">Rejected &amp; Completed are final — no moves from there.</p>
       </div>
     </div>
   );
@@ -142,7 +142,7 @@ export default function Sidebar() {
           </Link>
           <button
             onClick={() => setOpen(true)}
-            aria-label="Menu kholo"
+            aria-label="Open menu"
             className="rounded-lg p-2 hover:bg-white/10"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -168,7 +168,7 @@ export default function Sidebar() {
         >
           <button
             onClick={() => setOpen(false)}
-            aria-label="Menu band karo"
+            aria-label="Close menu"
             className="absolute top-3 right-3 rounded-lg p-2 text-[#c9d6cb] hover:bg-white/10 hover:text-white"
           >
             ✕

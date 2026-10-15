@@ -4,12 +4,12 @@ const { checkCreate, parseListParams } = require("../../../lib/validate");
 const { generateReference } = require("../../../lib/reference");
 
 // GET /api/returns?search=&status=&reason=&sort=&order=&page=&pageSize=
-// Saara filter/sort/paging SQL me hota hai, browser me nahi.
+// All filter/sort/paging happens in SQL, not in the browser.
 export async function GET(request) {
   try {
     const p = parseListParams(request.nextUrl.searchParams);
     if (Object.keys(p.errors).length > 0) {
-      throw validation("Query params galat hain.", p.errors);
+      throw validation("Query params are invalid.", p.errors);
     }
     const where = ["r.deleted_at IS NULL"];
     const params = [];
@@ -58,23 +58,23 @@ export async function GET(request) {
   }
 }
 
-// POST /api/returns — nayi request. Reference server banata hai.
+// POST /api/returns — new request. The server creates the reference.
 export async function POST(request) {
   try {
     let body;
     try {
       body = await request.json();
     } catch {
-      throw validation("Body JSON me bhejo.", null);
+      throw validation("Send the body as JSON.", null);
     }
     const errors = checkCreate(body);
     if (Object.keys(errors).length > 0) {
-      throw validation("Kuch fields galat hain.", errors);
+      throw validation("Some fields are invalid.", errors);
     }
     const order_number = body.order_number.trim();
     const item_sku = body.item_sku.trim();
 
-    // Rule 3: same order+item par live request pehle se hai to mana.
+    // Rule 3: deny if a live request already exists for the same order+item.
     const dup = await query(
       `SELECT id FROM returns
        WHERE order_number = $1 AND item_sku = $2
@@ -85,11 +85,11 @@ export async function POST(request) {
     if (dup.rows.length > 0) {
       throw conflict(
         "DUPLICATE_LIVE_REQUEST",
-        "Is order + item par ek live request pehle se hai. Purani close (Rejected/Completed) hone ke baad nayi bana sakte ho."
+        "A live request already exists for this order + item. You can create a new one after the old one is closed (Rejected/Completed)."
       );
     }
 
-    // Reference collision ho to retry (max 5).
+    // Retry on reference collision (max 5).
     let row = null;
     for (let attempt = 0; attempt < 5; attempt++) {
       const reference = generateReference();
@@ -104,7 +104,7 @@ export async function POST(request) {
             reference,
             body.customer_name.trim(),
             body.customer_email.trim(),
-            // Phone number bhi aa sakta hai, isliye String() lagaya (validation upar ho chuki).
+            // Phone may come as a number, so String() is used (validation already done above).
             body.customer_phone ? String(body.customer_phone).trim() || null : null,
             order_number,
             item_sku,
@@ -116,7 +116,7 @@ export async function POST(request) {
         row = r.rows[0];
         break;
       } catch (e) {
-        // Reference takraya to dobara try, warna fail() sambhalega.
+        // On reference clash try again, else fail() will handle it.
         if (e && e.code === "23505" && e.constraint === "returns_reference_key") {
           continue;
         }
@@ -124,14 +124,14 @@ export async function POST(request) {
         if (e && e.code === "23505" && e.constraint === "returns_live_item_unique") {
           throw conflict(
             "DUPLICATE_LIVE_REQUEST",
-            "Is order + item par ek live request pehle se hai. Purani close hone ke baad nayi bana sakte ho."
+            "A live request already exists for this order + item. You can create a new one after the old one is closed."
           );
         }
         throw e;
       }
     }
     if (!row) {
-      throw conflict("REFERENCE_COLLISION", "Reference banane me dikkat aayi, dobara try karo.");
+      throw conflict("REFERENCE_COLLISION", "Could not create a reference, please try again.");
     }
     return json({ data: row }, 201);
   } catch (e) {

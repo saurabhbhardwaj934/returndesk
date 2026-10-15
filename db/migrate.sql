@@ -1,11 +1,11 @@
--- ReturnDesk schema. Khali database par seedha chalता है (idempotent).
--- Supabase / kisi bhi Postgres par kaam karta hai.
+-- ReturnDesk schema. Runs directly on an empty database (idempotent).
+-- Works on Supabase / any Postgres.
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Statuses: open, in_review, approved, rejected, completed
 -- Reasons: Damaged, Wrong Item, Size Issue, Not As Described, Changed Mind
--- Resolutions: refund, replacement, store_credit (sirf approved/completed par)
+-- Resolutions: refund, replacement, store_credit (only on approved/completed)
 
 CREATE TABLE IF NOT EXISTS returns (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -33,13 +33,13 @@ CREATE TABLE IF NOT EXISTS notes (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Rule 3 (race-safe): ek order+item par sirf ek live request.
--- Live = deleted nahi AUR status rejected/completed me nahi.
+-- Rule 3 (race-safe): only one live request per order+item.
+-- Live = not deleted AND status is not rejected/completed.
 CREATE UNIQUE INDEX IF NOT EXISTS returns_live_item_unique
   ON returns (order_number, item_sku)
   WHERE deleted_at IS NULL AND status NOT IN ('rejected', 'completed');
 
--- List page ke liye indexes (server-side search/filter/sort/paging isi par chalta hai).
+-- Indexes for the list page (server-side search/filter/sort/paging runs on these).
 CREATE INDEX IF NOT EXISTS returns_list_idx
   ON returns (deleted_at, status, reason, created_at DESC);
 CREATE INDEX IF NOT EXISTS returns_search_idx

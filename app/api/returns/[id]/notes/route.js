@@ -3,7 +3,7 @@ const { json, fail, validation, notFound } = require("../../../../../lib/errors"
 const { checkNote } = require("../../../../../lib/validate");
 
 // POST /api/returns/:id/notes { body }
-// Notes kabhi bhi likh sakte ho (decided/closed par bhi), edit/delete ka API hai hi nahi.
+// Notes can be added anytime (even when decided/closed), there is no edit/delete API.
 export async function POST(request, { params }) {
   try {
     const { id } = await params;
@@ -13,17 +13,17 @@ export async function POST(request, { params }) {
     );
     const row = found.rows[0];
     if (!row || row.deleted_at) {
-      throw notFound("Ye request nahi mili.");
+      throw notFound("This request was not found.");
     }
     let body;
     try {
       body = await request.json();
     } catch {
-      throw validation("Body JSON me bhejo.", null);
+      throw validation("Send the body as JSON.", null);
     }
     const errors = checkNote(body);
     if (Object.keys(errors).length > 0) {
-      throw validation("Note galat hai.", errors);
+      throw validation("Note is invalid.", errors);
     }
     const r = await query(
       "INSERT INTO notes (return_id, body) VALUES ($1, $2) RETURNING id, body, created_at",

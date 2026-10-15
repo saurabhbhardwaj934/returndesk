@@ -1,5 +1,5 @@
-// node scripts/apitest.js [baseUrl] — poore API + 5 rules ka end-to-end test.
-// Test ke baad `npm run db:seed` dobara chalana taaki DB clean 36 par wapas aaye.
+// node scripts/apitest.js [baseUrl] — end-to-end test for full API + 5 rules.
+// After the test, run `npm run db:seed` again to bring the DB back to clean 36.
 const BASE = process.argv[2] || "http://localhost:3100";
 let pass = 0;
 let fail = 0;
@@ -31,7 +31,7 @@ async function req(method, path, body) {
   check("combo-all-open", rows.every((x) => x.status === "open"), JSON.stringify(rows.map((x) => x.status)));
   check("combo-all-damaged", rows.every((x) => x.reason === "Damaged"), "");
 
-  // ek approved + ek open row uthao
+  // pick one approved + one open row
   r = await req("GET", "/api/returns?status=approved&pageSize=2");
   const approved = r.data.data[0];
   r = await req("GET", "/api/returns?status=open&pageSize=2");
@@ -74,7 +74,7 @@ async function req(method, path, body) {
   r = await req("POST", "/api/returns/" + newId + "/status", { to: "approved", resolution: "refund", refund_amount_cents: 19999 });
   check("approve-ok", r.status === 200 && r.data.data.resolution === "refund", JSON.stringify(r.data));
 
-  // 7. Rule 4 locked (seed wala approved row)
+  // 7. Rule 4 locked (approved row from seed)
   r = await req("PATCH", "/api/returns/" + approved.id, { customer_name: "Hacker" });
   check("locked-409", r.status === 409, r.status);
   check("locked-code", r.data && r.data.error && r.data.error.code === "LOCKED", JSON.stringify(r.data));
@@ -87,7 +87,7 @@ async function req(method, path, body) {
   r = await req("DELETE", "/api/returns/" + approved.id, null);
   check("rm-approved-409", r.status === 409, r.status);
   check("rm-code", r.data && r.data.error && r.data.error.code === "CANNOT_REMOVE", JSON.stringify(r.data));
-  // fresh (ab approved hai newId) -> naya open banao aur hatao
+  // fresh (newId is now approved) -> create a new open one and remove it
   const fresh2 = { ...fresh, order_number: "ORD-TEST-2", item_sku: "TEST-SKU-2" };
   let c = await req("POST", "/api/returns", fresh2);
   const delId = c.data.data.id;
