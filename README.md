@@ -1,111 +1,290 @@
 # ReturnDesk
 
-Live URL: https://returndesk-ashy.vercel.app/
+A returns management application for a small online store. It helps support agents create return requests, review cases, decide on resolutions, add notes, and track requests until they are closed.
 
-A returns desk for a small online store. An agent can raise a return request, review it,
-approve or reject it (refund / replacement / store credit), add notes, and close it.
+**Live Application:** https://returndesk-ashy.vercel.app/  
+GitHub Repository:(https://github.com/saurabhbhardwaj934/returndesk)
+## Overview
 
-The full code is in **plain JavaScript + React + Next.js App Router** (no TypeScript).
-Backend is **Next.js route handlers**, database is **Supabase Postgres** (raw SQL with `pg`),
-styling is **Tailwind**.
+ReturnDesk provides a single workspace for managing product returns. Each request has a system-generated reference, customer and order information, a return reason, a status, and a record of its notes.
 
-## Setup (from a clean machine)
+The application is built with JavaScript and Next.js App Router. Next.js route handlers manage the backend operations, and Supabase PostgreSQL stores the data persistently.
 
-1. Clone the repo. You need Node 20+:
-   ```bash
-   npm install
-   ```
-2. Create a free project in Supabase. Go to Project → Settings → Database → copy the connection string (URI, pooled port 6543).
-3. Create `.env`:
-   ```bash
-   cp .env.example .env
-   # In .env, put your password and host inside DATABASE_URL
-   ```
-4. Create tables and add seed data:
-   ```bash
-   npm run db:migrate
-   npm run db:seed
-   ```
-5. Run it:
-   ```bash
-   npm run dev
-   # Open http://localhost:3000
-   ```
+## Features
 
-Deploy (Vercel): import the project, add `DATABASE_URL` (pooled URI) in Env. Before deploy,
-run `npm run db:migrate` + `npm run db:seed` once from your laptop against Supabase.
-The seed data stays loaded on deploy too.
+- Create return requests with customer contact details, order number, product SKU, item name, quantity, and return reason.
+- Generate a unique, human-readable return reference on the server.
+- Search by customer name, order number, or return reference.
+- Filter requests by status and return reason.
+- Sort and paginate results on the server.
+- View request details and notes in chronological order.
+- Add notes without editing or deleting previously written notes.
+- Edit requests before a final decision.
+- Approve requests with a refund, replacement, or store credit resolution.
+- Reject requests and complete approved requests.
+- Soft-delete eligible requests while retaining their database records.
+- Display dashboard counts by status and return reason.
+- Handle loading, empty, and error states, with responsive layouts for smaller screens.
 
-## What is built (PDF mapping)
+## Technology Stack
 
-- Raise: customer + contact, order, item + qty, 5 reasons. The server creates the reference (`RET-XXXXXX`).
-- Find: search (customer/order/reference) + status/reason filter + sort + paging — all in one SQL query
-  (`WHERE ILIKE + COUNT(*) OVER() + LIMIT/OFFSET`). No filtering in the browser. Search has 350ms debounce.
-- Work: full detail page + notes oldest-first, notes can be added anytime (there is no edit/delete API),
-  edit before decision, soft-remove (the record stays in the DB).
-- Interface: status badge, only legal buttons, loading/empty/error states, server refusal reason is shown, cards for 375px mobile.
-- Seed: `scripts/seed.js` — 36 rows (8 open, 7 in_review, 7 approved, 7 rejected, 7 completed),
-  each reason at least 7 times, half of the rows have notes. It uses `TRUNCATE` so it can run again.
+| Area | Technology |
+|---|---|
+| Frontend | React, Next.js App Router |
+| Language | JavaScript |
+| Styling | Tailwind CSS |
+| Backend | Next.js Route Handlers |
+| Database | Supabase PostgreSQL |
+| Database access | `pg` and raw SQL |
+| Deployment | Vercel |
 
-## 5 business rules (enforced on server, `lib/rules.js` is the single source)
+## Getting Started
 
-1. Flow: `open → in_review → approved → completed`, `in_review → rejected`. All other moves give `409 INVALID_TRANSITION`. No move from a final state.
-2. Approval: approve without `refund/replacement/store_credit` is denied (`409 RESOLUTION_REQUIRED`).
-   For refund, amount must be `>0` integer cents. For non-refund, amount is not allowed (`409 INVALID_REFUND`).
-3. One live request per item: duplicate live `(order_number, item_sku)` is denied (`409 DUPLICATE_LIVE_REQUEST`).
-   Both app check and a partial unique index exist for race safety. A new request is allowed after `rejected/completed`.
-4. Locked: `PATCH` after `approved/rejected/completed` is denied (`409 LOCKED`). Notes are still allowed.
-5. Removal: sets `deleted_at` (no hard delete). Hidden from list + `404` on GET. Only `open/rejected` can be removed (`409 CANNOT_REMOVE` otherwise).
+### Prerequisites
 
-Error shape is always: `{ error: { code, message, details? } }` — `400` validation, `404` missing/removed,
-`409` rule-refusal. No error inside `200`, no HTML error, no `500` for expected cases.
+- Node.js 20 or later
+- npm
+- A Supabase project with PostgreSQL access
 
-## API
+### 1. Clone the repository
 
-| Method | Path | Work |
+```bash
+git clone https://github.com/saurabhbhardwaj934/returndesk
+cd returndesk
+npm install
+```
+
+Replace the repository URL with the actual GitHub clone URL. If Git creates a differently named directory, enter that directory instead.
+
+### 2. Configure the database
+
+Create a Supabase project and open **Project → Settings → Database** to obtain the PostgreSQL connection details.
+
+Create a `.env` file in the project root:
+
+```bash
+cp .env.example .env
+```
+
+Configure the database connection in `.env`:
+
+```env
+DATABASE_URL=your_supabase_postgres_connection_string
+```
+
+Use the pooled connection URI on port `6543` as configured for this project. Replace the placeholder with your actual connection string.
+
+Keep `.env` private. Never commit database credentials or other secrets to GitHub.
+
+### 3. Run database migrations
+
+```bash
+npm run db:migrate
+```
+
+This creates the tables and indexes required by the application.
+
+### 4. Load sample data
+
+```bash
+npm run db:seed
+```
+
+The seed script creates 36 sample return requests distributed across all five statuses, with at least seven records for each return reason. Notes are included on a subset of requests.
+
+**Important:** The seed script uses `TRUNCATE` to reset the relevant tables before inserting sample data. Run it only against a database where resetting those records is acceptable. Do not run it against production data you need to preserve.
+
+### 5. Start the application
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Database and Data Model
+
+PostgreSQL is used as the persistent data store so that requests remain available across application restarts.
+
+The database contains return request records and their associated notes. The schema and indexes are defined in `db/migrate.sql`.
+
+Important implementation details include:
+
+- Database-generated UUIDs identify records.
+- Human-readable references make requests easier to locate.
+- Integer currency values represent refund amounts to avoid floating-point rounding problems.
+- A partial unique index prevents duplicate active requests for the same order and item SKU.
+- Soft deletion uses a deletion timestamp instead of physically removing a request.
+- SQL queries perform filtering, sorting, and pagination on the server.
+
+## Request Lifecycle
+
+The application enforces the following status transitions:
+
+```text
+open → in_review → approved → completed
+             └──→ rejected
+```
+
+Rejected and completed requests are final states. Other transitions are rejected by the backend.
+
+### Resolution Rules
+
+- A request cannot be approved without a resolution.
+- Supported resolutions are `refund`, `replacement`, and `store_credit`.
+- A refund requires a positive amount expressed in integer currency units.
+- Replacement and store credit cannot include a refund amount.
+- Resolution information is retained when an approved request is completed.
+
+### Duplicate Requests
+
+Only one active return request is permitted for the same combination of `order_number` and `item_sku`.
+
+A new request for that combination is allowed after the previous request reaches `rejected` or `completed`.
+
+Both application-level validation and a database constraint provide protection against duplicate active requests.
+
+### Editing and Removal
+
+Customer and item details become locked once a request is approved, rejected, or completed. Notes can still be added after those decisions.
+
+Only requests in `open` or `rejected` status may be removed. Removal hides the request from the normal list and detail endpoints without destroying the database record.
+
+## API Reference
+
+All endpoints are implemented using Next.js Route Handlers.
+
+| Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/api/returns?search=&status=&reason=&sort=created_at\|updated_at\|customer_name\|order_number\|reference\|status&order=asc\|desc&page=&pageSize=` | List + `{ data, page, pageSize, total, totalPages }` |
-| POST | `/api/returns` | Create → `201 { data }` (Rule 3) |
-| GET | `/api/returns/:id` | One + notes ASC (`:id` = UUID or reference) |
-| PATCH | `/api/returns/:id` | Edit (Rule 4) |
-| POST | `/api/returns/:id/status` `{ to, resolution?, refund_amount_cents? }` | Move (Rule 1+2) |
-| POST | `/api/returns/:id/notes` `{ body }` | Note → `201` |
-| DELETE | `/api/returns/:id` | Soft-remove (Rule 5) |
-| GET | `/api/returns/summary` | Dashboard counts `{ total, byStatus, byReason }` (only live rows) |
+| GET | `/api/returns` | List and search requests |
+| POST | `/api/returns` | Create a request |
+| GET | `/api/returns/:id` | Fetch a request and its notes |
+| PATCH | `/api/returns/:id` | Edit an eligible request |
+| POST | `/api/returns/:id/status` | Change status and set resolution |
+| POST | `/api/returns/:id/notes` | Add a note |
+| DELETE | `/api/returns/:id` | Soft-delete an eligible request |
+| GET | `/api/returns/summary` | Get dashboard counts |
 
-## Design decisions (why)
+The list endpoint supports the following query parameters:
 
-- Route handlers (no separate Express): one Vercel deploy, allowed by PDF, frontend and backend in one repo.
-- Raw SQL + `pg`: ORM is heavy for 2 tables, and the PDF wants to see the query — `WHERE/LIMIT` is clear in raw SQL.
-- `lib/rules.js` + `lib/validate.js` as single source: the API enforces it, the frontend imports it only for gating (hiding a button is not enforcement).
-- Reference `RET-XXXXXX`: easy to read, unique constraint + retry on collision.
-- Detail `:id` accepts UUID + reference both: URL `/requests/RET-S001` looks nice, API stays flexible.
-- Refund is stored in paise/cents (integer): to avoid float rounding. The UI takes ₹, sends `Math.round(rs*100)`.
-- Plain JS validation (no zod): easy to defend in JS, fewer dependencies.
+- `search`: customer name, order number, or reference
+- `status`: status filter
+- `reason`: return reason filter
+- `sort`: supported sorting field
+- `order`: `asc` or `desc`
+- `page`: page number
+- `pageSize`: number of records per page, up to 50
 
-## Assumptions (asked to write in README by PDF)
+Filtering, sorting, and pagination are handled in SQL. The list query uses `ILIKE`, `COUNT(*) OVER()`, `LIMIT`, and `OFFSET`. Search input is debounced by 350 milliseconds in the interface.
 
-- "Same item" = exact match of `(order_number, item_sku)`. If the name is different but SKU is same, it is the same item.
-  Order number is unique per customer, so customer is not matched separately.
-- Status flow: `open` to direct `rejected` is not allowed — it must first go to `in_review`.
-  The PDF diagram was unclear, this is a reasonable choice (if the evaluator sees `409` on `open → rejected`, this is the reason).
-- If `resolution` is sent on a non-approved move, it is ignored (no error). Resolution is checked only for `approved`.
-- No auth — single shared desk (the PDF did not ask for login).
-- `completed` rows show resolution (it came from approved).
-- Sort whitelist has 6 columns (`created_at, updated_at, customer_name, order_number, reference, status`); `pageSize` max is 50.
-- Time taken: ~10-12 hours (plan + code + seed + UI).
+### Error Handling
 
-## What is left / next
+The API uses consistent JSON error responses:
 
-- [x] Live deploy (Vercel) + Supabase with seed — URL is above, total 36 verified on `/api/returns`.
-- [x] `npm run build` passes. Click-through tested with Supabase.
-- [ ] Next: refund total dashboard, audit log, order-autocomplete. Core is solid first.
+```json
+{
+  "error": {
+    "code": "INVALID_TRANSITION",
+    "message": "The requested status transition is not allowed"
+  }
+}
+```
 
-## Scripts
+The `details` field may be included when additional validation information is available.
 
-- `npm run dev` / `npm run build` / `npm run start`
-- `npm run db:migrate` — runs `db/migrate.sql` (only tables/index, no seed)
-- `npm run db:seed` — 36 rows + notes (uses `TRUNCATE`, can run again)
-- `node scripts/apitest.js [baseUrl]` — end-to-end test for 5 rules (run `db:seed` again after it)
-- `node scripts/verify.js` — quick check of seed counts
-- `npm run lint`
+Expected validation errors, missing records, and business-rule refusals use appropriate HTTP status codes rather than returning an error inside a successful response.
+
+## Design Decisions
+
+### Next.js Route Handlers
+
+The frontend and backend are deployed as one Next.js application. This avoids maintaining a separate Express service and keeps the deployment straightforward.
+
+### Raw SQL with `pg`
+
+The application uses raw SQL instead of an ORM. This provides direct control over the queries and makes the filtering, counting, sorting, and pagination behavior explicit.
+
+### Centralised Business Rules
+
+`lib/rules.js` contains the shared business rules, while `lib/validate.js` handles input validation.
+
+The frontend uses the rules to control available actions, but the backend independently enforces them. Hiding a button is not treated as a security or validation mechanism.
+
+### Human-Readable References
+
+The server generates references in the `RET-XXXXXX` format. A unique constraint and retry logic handle potential reference collisions.
+
+The detail endpoint accepts either a UUID or a return reference, allowing readable URLs without removing the underlying UUID identifier.
+
+### Refund Amounts in Integer Units
+
+The interface accepts an amount in rupees and converts it to integer paise using `Math.round(amount * 100)`. The database stores the integer amount, avoiding floating-point arithmetic for currency values.
+
+### Soft Deletion
+
+Requests are removed from the desk by setting `deleted_at`. This preserves the underlying record while excluding it from normal list and detail access.
+
+## Assumptions
+
+Some details in the brief required implementation choices:
+
+- **Item identity:** The same item means an exact match of `order_number` and `item_sku`. Item name is not used to determine duplication.
+- **Order ownership:** Order numbers are assumed to identify the relevant order uniquely, so customer identity is not separately included in the duplicate check.
+- **Status transitions:** An `open` request must first move to `in_review` before it can be rejected. Direct rejection from `open` is not permitted.
+- **Resolution on other transitions:** Resolution fields are validated when a request is approved. Resolution information supplied for a non-approval transition is ignored.
+- **Authentication:** The current version is a single shared desk and does not include login or role-based access because authentication was not part of the requested scope.
+- **Sorting:** Sorting is restricted to an explicit whitelist of six columns. Page size is capped at 50.
+- **Completed requests:** A completed request retains the resolution recorded at approval.
+
+These choices keep the implementation consistent and make the behavior predictable for the user.
+
+## Available Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the development server |
+| `npm run build` | Build the production application |
+| `npm run start` | Start the production server |
+| `npm run lint` | Run the configured lint checks |
+| `npm run db:migrate` | Create database tables and indexes |
+| `npm run db:seed` | Reload sample data and notes |
+| `node scripts/verify.js` | Verify sample-data counts |
+| `node scripts/apitest.js [baseUrl]` | Run API tests for business rules |
+
+The API test script changes test data. Run the seed script again afterward if you want to restore the original sample dataset.
+
+## Deployment
+
+The application is deployed on Vercel and uses Supabase PostgreSQL.
+
+To deploy another instance:
+
+1. Import the public GitHub repository into Vercel.
+2. Configure `DATABASE_URL` in the deployment environment variables.
+3. Run the database migrations against the intended Supabase project.
+4. Load sample data if required for the demo.
+5. Deploy the application and verify the API and database connection.
+
+The deployed application requires a working PostgreSQL connection. Database credentials must remain server-side and must not be exposed to the browser.
+
+## Current Status and Future Work
+
+The current implementation focuses on the core return-management workflow, database persistence, API validation, and request lifecycle.
+
+Potential improvements include:
+
+- A dashboard showing total refund amounts.
+- An audit log for request changes and status transitions.
+- Order lookup and autocomplete.
+- Authentication and role-based access for multiple agents.
+- Additional automated tests for edge cases and concurrent operations.
+
+These enhancements are future work and are not presented as existing features.
+
+## Development Time
+
+Approximately 10–12 hours were spent on planning, implementation, database setup, sample data, interface development, and deployment.
+
+## License
+
+No license has been specified for this repository. Add a license file if you intend to distribute the project under specific reuse terms.
